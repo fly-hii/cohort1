@@ -8,6 +8,7 @@ Open a terminal in this folder and run:
 
 ```sh
 python3 server.py
+
 ```
 
 Then open http://127.0.0.1:4173 in your browser. On macOS, `start.command` runs the same server. Python 3 is required. Invoice extraction additionally requires macOS 13 or later and Apple Command Line Tools (already present on the development Mac). The first launch compiles the local recognition helper; later launches reuse it. Stop it with Control-C. Reuse the same browser and URL, including port, to access saved records.
