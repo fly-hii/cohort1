@@ -1,0 +1,18 @@
+const {parseInvoice}=require('./dist/invoice-parser.js');
+const assert=require('node:assert/strict');
+const sample=`ACME OFFICE SUPPLIES\nTAX INVOICE\nInvoice No: ACME-2026-042\nInvoice Date: 27/09/2026\nDue Date: 30/09/2026\nBill To: Cohort Coworking Spaces\nSubtotal: INR 10,000.00\nGST: INR 1,800.00\nGrand Total: INR 11,800.00`;
+let out=parseInvoice(sample);assert.equal(out.number,'ACME-2026-042');assert.equal(out.amount,11800);assert.equal(out.vendor,'ACME OFFICE SUPPLIES');assert.equal(out.issued,'2026-09-27');assert.equal(out.due,'2026-09-30');assert.equal(out.currency,'INR');
+assert.equal(parseInvoice('Subtotal: INR 900\nGST: 162').amount,null);
+assert.equal(parseInvoice('Total tax: 100\nGrand Total: INR 1000').amount,1000);
+assert.equal(parseInvoice('Invoice Date: 31/02/2026').issued,'');
+assert.equal(parseInvoice('Invoice Date: 27 Sep 2026').issued,'2026-09-27');
+assert.equal(parseInvoice('Invoice Date: 2026-09-27').issued,'2026-09-27');
+assert.ok(parseInvoice('Invoice Date: 01/02/2026').warnings.some(x=>x.includes('day/month')));
+assert.ok(parseInvoice('Grand total: USD 100').warnings.some(x=>x.includes('non-INR')));
+assert.equal(parseInvoice('Grand Total\nINR 1,18,000.25').amount,118000.25);
+assert.equal(parseInvoice('').number,'');assert.equal(parseInvoice('').amount,null);
+const blankTemplate=`SIMPLE INVOICE TEMPLATE\nTry Smartsheet for FREE\nTemplate begins on page 2.\nINVOICE\nCompany Name\n123 Main Street\nINVOICE NO.\nDATE\nCUSTOMER ID\nTERMS\nDESCRIPTION\nHOURS\nRATE\nTOTAL\nenter total amount\nDISCLAIMER`;
+out=parseInvoice(blankTemplate);assert.equal(out.blankTemplate,true);assert.equal(out.vendor,'');assert.equal(out.number,'');assert.equal(out.amount,null);assert.equal(out.foundCount,0);assert.ok(out.warnings.some(x=>x.includes('blank invoice template')));
+const coworkingInvoice=`27/09/2026 Invoice No. 1234\nTo\nSS Infra\nFinancial District\nHyderabad,Telangana\nShip To\nSS Infra\nInstructions\nDelivery Instructions\nQuantity Description Unit Price Total\n1 Hot Desk Monthly Membership $250 $250.00\n4 Meeting Room Credits (Extra Hours) $25 $100.00\n1 Printing / Scanning Fees $15 $15.00\nSubtotal $365.00\nSales Tax $0.00\nShipping & Handling $0.00\nTotal Due $365.00\nDue upon receipt`;
+out=parseInvoice(coworkingInvoice);assert.equal(out.vendor,'SS Infra');assert.equal(out.number,'1234');assert.equal(out.amount,365);assert.equal(out.issued,'2026-09-27');assert.equal(out.due,'2026-09-27');assert.equal(out.currency,'USD');assert.equal(out.foundCount,5);assert.equal(out.lineItems.length,3);assert.deepEqual(out.lineItems[0],{quantity:1,description:'Hot Desk Monthly Membership',unitPrice:250,total:250});assert.equal(out.breakdown.subtotal,365);assert.equal(out.breakdown.tax,0);assert.equal(out.breakdown.shipping,0);assert.ok(out.warnings.some(x=>x.includes('Due upon receipt')));
+console.log('Passed invoice field suggestions: totals, vendor, number, numeric/named dates, invalid dates, ambiguity, missing fields, currency warnings.');
